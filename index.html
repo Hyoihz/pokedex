@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="./assets/favicon.ico" />
+        <link rel="stylesheet" href="./src/style.css" />
+        <title>Pokédex</title>
+    </head>
+    <body>
+        <div class="container">
+            <header class="header">
+                <h1 class="header__title">Pokédex</h1>
+                <p class="header__description">
+                    Search for a Pokémon by name or using its National Pokédex number.
+                </p>
+                <div class="header__search-wrapper">
+                    <div class="header__search">
+                        <svg
+                            class="header__search-icon"
+                            width="20px"
+                            height="20px"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <circle cx="11" cy="11" r="7" stroke="#33363F" stroke-width="2" />
+                            <path
+                                d="M20 20L17 17"
+                                stroke="#33363F"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                        <input
+                            class="header__search-input"
+                            id="search-input"
+                            type="text"
+                            placeholder="Search your pokemon!"
+                        />
+                    </div>
+                    <button class="header__filter" id="search-filter">
+                        <svg
+                            class="header__filter-icon"
+                            width="25px"
+                            height="25px"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path d="M10 8L20 8" stroke="#222222" stroke-linecap="round" />
+                            <path d="M4 16L14 16" stroke="#222222" stroke-linecap="round" />
+                            <ellipse
+                                cx="7"
+                                cy="8"
+                                rx="3"
+                                ry="3"
+                                transform="rotate(90 7 8)"
+                                stroke="#222222"
+                                stroke-linecap="round"
+                            />
+                            <ellipse
+                                cx="17"
+                                cy="16"
+                                rx="3"
+                                ry="3"
+                                transform="rotate(90 17 16)"
+                                stroke="#222222"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+            <main class="pokemon__list"></main>
+            <button class="load-more">Load more</button>
+        </div>
+        <script type="module" src="./src/main.js"></script>
+    </body>
+</html>
