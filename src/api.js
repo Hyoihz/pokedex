@@ -1,4 +1,4 @@
-const API_URL = "https://pokeapi.co/api/v2/";
+export const API_URL = "https://pokeapi.co/api/v2/";
 
 export async function fetchPokemonList(limit, offset) {
     const url = `${API_URL}pokemon?limit=${limit}&offset=${offset}`;

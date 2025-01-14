@@ -1,6 +1,6 @@
 import { Vibrant } from "node-vibrant/browser";
 
-export async function renderPokemonCard(details) {
+export async function renderPokemonCard(details, onRouteChange) {
     const pokemonName = details.name.charAt(0).toUpperCase() + details.name.slice(1);
     const pokemonId = details.id.toString().padStart(4, "0");
     const pokemonImg = details.sprites.other["official-artwork"].front_default;
@@ -42,6 +42,14 @@ export async function renderPokemonCard(details) {
         </div>
         <h4 class="pokemon__name">${pokemonName}</h4>
     `;
+
+    card.addEventListener("click", () => {
+        const trimmedPokemonId = String(Number(pokemonId));
+
+        history.pushState(null, null, `/pokedex/details/${trimmedPokemonId}`);
+
+        onRouteChange();
+    });
 
     Vibrant.from(pokemonImg)
         .getPalette()
