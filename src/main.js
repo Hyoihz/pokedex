@@ -1,5 +1,5 @@
-import { API_URL, fetchPokemonDetails, fetchPokemonList } from "./api.js";
-import { renderPokemonCard } from "./ui.js";
+import { API_URL, fetchPokemonDetails, fetchPokemonList } from "./utils/api.js";
+import { renderPokemonCard, renderPokemonInfo } from "./utils/ui.js";
 
 async function handleRoute() {
     const pathname = window.location.pathname;

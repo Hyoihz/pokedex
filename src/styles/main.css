@@ -4,6 +4,7 @@
 :root {
     --clr-heading: hsl(253, 33%, 23%);
     --clr-text: hsl(251, 16%, 42%);
+    --clr-caption: hsl(251, 16%, 68%);
 
     --clr-btn-primary: hsl(252, 14%, 49%);
 
@@ -15,12 +16,19 @@
     --ff-base: Poppins, sans-serif;
     --ff-accent: Space Grotesk, sans-serif;
 
+    --fs-4xs: 0.5rem;
+    --fs-3xs: 0.625rem;
+    --fs-2xs: 0.75rem;
     --fs-xs: 0.875rem;
     --fs-sm: 0.9375rem;
     --fs-md: 1rem;
+
+    --lh-base: 1.6;
 }
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -41,13 +49,24 @@ h6 {
     color: var(--clr-heading);
 }
 
+p {
+    line-height: var(--lh-base);
+}
+
 img {
     display: block;
     max-width: 100%;
 }
 
+button {
+    background: 0;
+    border: 0;
+    cursor: pointer;
+}
+
 .container {
     padding: 2rem;
+    display: none;
 }
 
 .header__description {
@@ -92,12 +111,10 @@ img {
 
 .header__filter {
     background-color: var(--clr-btn-primary);
-    border: 0;
     border-radius: 8px;
     display: flex;
     align-items: center;
     padding-inline: 0.5rem;
-    cursor: pointer;
 }
 
 .pokemon__list {
