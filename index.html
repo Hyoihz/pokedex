@@ -8,17 +8,17 @@
         <title>Pokédex</title>
     </head>
     <body>
-        <!-- pokemon cards -->
-        <div class="container">
-            <header class="header">
-                <h1 class="header__title">Pokédex</h1>
-                <p class="header__description">
+        <!-- pokedex home -->
+        <div class="pokedex">
+            <header class="pokedex__header">
+                <h1 class="pokedex__title">Pokédex</h1>
+                <p class="pokedex__description">
                     Search for a Pokémon by name or using its National Pokédex number.
                 </p>
-                <div class="header__search-wrapper">
-                    <div class="header__search">
+                <div class="pokedex__search-wrapper">
+                    <div class="pokedex__search">
                         <svg
-                            class="header__search-icon"
+                            class="pokedex__search-icon"
                             width="20px"
                             height="20px"
                             viewBox="0 0 24 24"
@@ -34,15 +34,15 @@
                             />
                         </svg>
                         <input
-                            class="header__search-input"
+                            class="pokedex__search-input"
                             id="search-input"
                             type="text"
                             placeholder="Search your pokemon!"
                         />
                     </div>
-                    <button class="header__filter" id="search-filter">
+                    <button class="pokedex__filter" id="search-filter">
                         <svg
-                            class="header__filter-icon"
+                            class="pokedex__filter-icon"
                             width="25px"
                             height="25px"
                             viewBox="0 0 24 24"
@@ -73,8 +73,8 @@
                     </button>
                 </div>
             </header>
-            <main class="pokemon__list"></main>
-            <button class="load-more">Load more</button>
+            <main class="pokedex__list"></main>
+            <button class="pokedex__load-more">Load more</button>
         </div>
         <script type="module" src="./src/main.js"></script>
     </body>

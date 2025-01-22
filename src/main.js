@@ -4,12 +4,24 @@ import { renderPokemonCard, renderPokemonInfo } from "./utils/ui.js";
 async function handleRoute() {
     const pathname = window.location.pathname;
 
-    if (pathname.startsWith("/pokedex/details/")) {
+    if (!(pathname.match(/^\/pokedex\/$/) || pathname.match(/^\/pokedex\/details\/\d+$/))) {
+        // TODO
+        console.log("Page not found!");
+        return;
+    }
+
+    if (pathname.match(/^\/pokedex\/$/)) {
+        const pokedex = document.querySelector(".pokedex");
+        const pokemonInfo = document.querySelector(".pokemon-info");
+
+        pokedex.style.display = "block";
+        pokemonInfo && (pokemonInfo.style.display = "none");
+    } else if (pathname.match(/^\/pokedex\/details\/\d+$/)) {
         const id = pathname.split("/")[3];
         const url = `${API_URL}pokemon/${id}`;
 
         const details = await fetchPokemonDetails(url);
-        renderPokemonInfo(details);
+        renderPokemonInfo(details, id, handleRoute);
     }
 }
 
@@ -29,11 +41,11 @@ async function loadPokemon(limit = 20, offset = 0) {
         fragment.appendChild(card);
     }
 
-    document.querySelector(".pokemon__list").appendChild(fragment);
+    document.querySelector(".pokedex__list").appendChild(fragment);
 }
 
-document.querySelector(".load-more").addEventListener("click", () => {
-    const offset = document.querySelectorAll(".pokemon__card").length;
+document.querySelector(".pokedex__load-more").addEventListener("click", () => {
+    const offset = document.querySelectorAll(".pokedex-card").length;
     loadPokemon(20, offset);
 });
 
