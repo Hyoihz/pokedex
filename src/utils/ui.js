@@ -47,7 +47,7 @@ export async function renderPokemonCard(details, onRouteChange) {
     card.addEventListener("click", () => {
         const trimmedPokemonId = String(Number(pokemonId));
 
-        history.pushState(null, null, `/pokedex/details/${trimmedPokemonId}`);
+        history.pushState(null, null, `/details/${trimmedPokemonId}`);
 
         onRouteChange();
     });
@@ -445,18 +445,18 @@ export async function renderPokemonInfo(details, id, onRouteChange) {
         console.log(e.target);
 
         if (e.target.closest(".pokemon-info__back-button")) {
-            history.pushState(null, null, "/pokedex/");
+            history.pushState(null, null, "/");
             document.body.removeChild(info);
 
             onRouteChange();
         } else if (e.target.closest(".pokemon-info__chevron-prev")) {
-            if (id === "1") history.pushState(null, null, `/pokedex/details/${1025}`);
-            else history.pushState(null, null, `/pokedex/details/${parseInt(id) - 1}`);
+            if (id === "1") history.pushState(null, null, `/details/${1025}`);
+            else history.pushState(null, null, `/details/${parseInt(id) - 1}`);
 
             onRouteChange();
         } else if (e.target.closest(".pokemon-info__chevron-next")) {
-            if (id === "1025") history.pushState(null, null, "/pokedex/details/1");
-            else history.pushState(null, null, `/pokedex/details/${parseInt(id) + 1}`);
+            if (id === "1025") history.pushState(null, null, "/details/1");
+            else history.pushState(null, null, `/details/${parseInt(id) + 1}`);
 
             onRouteChange();
         }
