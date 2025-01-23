@@ -3,9 +3,8 @@ import { renderPokemonCard, renderPokemonInfo } from "./utils/ui.js";
 
 async function handleRoute() {
     const pathname = window.location.pathname;
-    console.log(typeof pathname);
 
-    if (!(pathname === "/") || pathname.match(/^\/details\/\d+$/)) {
+    if (!(pathname === "/" || pathname.match(/^\/details\/\d+$/))) {
         // TODO
         console.log("Page not found!");
         return;
@@ -18,7 +17,7 @@ async function handleRoute() {
         pokedex.style.display = "block";
         pokemonInfo && (pokemonInfo.style.display = "none");
     } else if (pathname.match(/^\/details\/\d+$/)) {
-        const id = pathname.split("/")[3];
+        const id = pathname.split("/")[2];
         const url = `${API_URL}pokemon/${id}`;
 
         const details = await fetchPokemonDetails(url);
