@@ -25,9 +25,7 @@ async function handleRoute() {
     }
 }
 
-async function loadPokemon(limit = 20, offset = 0) {
-    const pokemonList = await fetchPokemonList(limit, offset);
-
+async function loadPokemon(pokemonList) {
     const pokemonPromises = pokemonList.results.map(async (pokemon) => {
         const details = await fetchPokemonDetails(pokemon.url);
         return { details };
@@ -41,18 +39,68 @@ async function loadPokemon(limit = 20, offset = 0) {
         fragment.appendChild(card);
     }
 
-    document.querySelector(".pokedex__list").appendChild(fragment);
+    const pokedexList = document.querySelector(".pokedex__list");
+    if (pokedexList.hasChildNodes()) pokedexList.replaceChildren();
+
+    pokedexList.appendChild(fragment);
 }
 
-document.querySelector(".pokedex__load-more").addEventListener("click", () => {
-    const offset = document.querySelectorAll(".pokedex-card").length;
-    loadPokemon(20, offset);
-});
-
-window.addEventListener("popstate", handleRoute);
-
 // initialize app
-document.addEventListener("DOMContentLoaded", () => {
-    loadPokemon();
+document.addEventListener("DOMContentLoaded", async () => {
+    const searchInput = document.getElementById("search-input");
+    const loadMoreBtn = document.querySelector(".pokedex__load-more");
+
+    let isSearchActive = false;
+
+    searchInput.value = "";
+
+    window.addEventListener("popstate", handleRoute);
+
+    searchInput.addEventListener("input", async (e) => {
+        if (e.target.value === "") {
+            if (isSearchActive) {
+                isSearchActive = false;
+                const pokemonList = await fetchPokemonList(20, 0);
+
+                loadPokemon(pokemonList);
+            }
+        }
+    });
+
+    searchInput.addEventListener("keydown", async (e) => {
+        if (e.key === "Enter") {
+            const searchValue = e.target.value.trim().toLowerCase();
+            const pokemonList = await fetchPokemonList(1025, 0);
+
+            if (searchValue !== "") {
+                isSearchActive = true;
+
+                const filteredPokemonList = pokemonList.results.filter((pokemon) => {
+                    const isNameMatch = pokemon.name.includes(searchValue);
+                    const idFromUrl = pokemon.url.match(/(\d+)\/$/)[1];
+                    const isIdMatch = idFromUrl === searchValue;
+
+                    return isNameMatch || isIdMatch;
+                });
+
+                if (filteredPokemonList.length === 0) {
+                    // TODO
+                    console.log("No pokemon found!");
+                    return;
+                }
+
+                loadPokemon({ results: filteredPokemonList });
+            }
+        }
+    });
+
+    loadMoreBtn.addEventListener("click", () => {
+        const offset = document.querySelectorAll(".pokedex-card").length;
+        loadPokemon(20, offset);
+    });
+
+    const pokemonList = await fetchPokemonList(20, 0);
+
+    loadPokemon(pokemonList);
     handleRoute();
 });
