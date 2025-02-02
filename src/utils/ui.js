@@ -1,10 +1,57 @@
 import { Vibrant } from "node-vibrant/browser";
-import { fetchPokemonDetails } from "./api";
+import { getSpeciesDetails } from "./api";
+import { TYPE_COLORS } from "./constants";
+import { getCachedDetails, storeCacheDetails } from "./db";
+import { capitalize, leadZeroPad, showSpinner } from "./helpers";
+
+async function getLightMutedColor(img, id) {
+    const cached = await getCachedDetails("color", id);
+    if (cached) return cached;
+
+    try {
+        const palette = await Vibrant.from(img).getPalette();
+        const lightMutedColor = palette.LightMuted.hex;
+
+        await storeCacheDetails("color", id, lightMutedColor);
+
+        return lightMutedColor;
+    } catch (error) {
+        console.error("Error calculating vibrant color:", error);
+
+        return "#f0f0f0";
+    } finally {
+    }
+}
+
+function fadeInImage(imgEl) {
+    imgEl.style.opacity = 0;
+
+    imgEl.onload = () => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                imgEl.style.transition = "opacity 0.5s ease-in-out";
+                imgEl.style.opacity = 1;
+            });
+        });
+    };
+}
 
 export async function renderPokemonCard(details, onRouteChange) {
-    const pokemonName = details.name.charAt(0).toUpperCase() + details.name.slice(1);
-    const pokemonId = details.id.toString().padStart(4, "0");
+    const pokemonName = capitalize(details.name);
+    const pokemonId = leadZeroPad(details.id, 4);
     const pokemonImg = details.sprites.other["official-artwork"].front_default;
+
+    const renderTypeIcons = details.types
+        .map(({ type }) => {
+            return `
+                <div class="pokedex__filter-icon pokedex__filter-icon--accent" 
+                    data-filter=${type.name} 
+                    style="background: linear-gradient(to bottom right, ${
+                        TYPE_COLORS[type.name].gradient
+                    })">
+                </div>`;
+        })
+        .join("");
 
     const card = document.createElement("div");
     card.className = "pokedex-card";
@@ -12,6 +59,7 @@ export async function renderPokemonCard(details, onRouteChange) {
 
     card.innerHTML = `
         <p class="pokedex-card__id">#${pokemonId}</p>
+        <div class="pokedex-card__type">${renderTypeIcons}</div>
         <div class="pokedex-card__img-wrapper">
             <div class="pokedex-card__pokeball-background">
                 <svg
@@ -44,7 +92,12 @@ export async function renderPokemonCard(details, onRouteChange) {
         <h4 class="pokedex-card__name">${pokemonName}</h4>
     `;
 
+    const cardImgEl = card.querySelector(".pokedex-card__img");
+    fadeInImage(cardImgEl);
+
     card.addEventListener("click", () => {
+        sessionStorage.setItem("scrollPos", window.scrollY);
+
         const trimmedPokemonId = String(Number(pokemonId));
 
         history.pushState(null, null, `/details/${trimmedPokemonId}`);
@@ -52,57 +105,60 @@ export async function renderPokemonCard(details, onRouteChange) {
         onRouteChange();
     });
 
-    Vibrant.from(pokemonImg)
-        .getPalette()
-        .then((palette) => {
-            card.style.backgroundColor = palette.LightMuted.hex;
-        })
-        .catch(() => {
-            // Keep default background if color calculation fails
-        });
+    card.style.backgroundColor = await getLightMutedColor(pokemonImg, details.id);
 
     return card;
 }
 
 export async function renderPokemonInfo(details, id, onRouteChange) {
-    const pokemonName = details.name.charAt(0).toUpperCase() + details.name.slice(1);
-    const pokemonId = details.id.toString().padStart(4, "0");
+    const pokemonName = capitalize(details.name);
+    const pokemonId = leadZeroPad(details.id, 4);
     const pokemonImg = details.sprites.other["official-artwork"].front_default;
     const pokemonWeight = details.weight / 10;
     const pokemonHeight = details.height / 10;
 
-    const speciesDetails = await fetchPokemonDetails(details.species.url);
+    const speciesDetails = await getSpeciesDetails(details.id);
 
-    const filteredNames = speciesDetails.names.filter(({ language }) => language.name === "ja");
-    const pokemonNameJA = filteredNames[0].name;
+    const filteredNames = speciesDetails.names.find(({ language }) => language.name === "ja");
+    const pokemonNameJA = filteredNames.name;
 
-    const filteredEntries = speciesDetails["flavor_text_entries"].filter(
+    const filteredEntries = speciesDetails["flavor_text_entries"].find(
         ({ language }) => language.name === "en"
     );
-    const pokemonInfo = filteredEntries[0]["flavor_text"]
-        .replace(/\n/g, " ")
-        .replace(/\u000c/g, " ");
+    const pokemonInfo = filteredEntries["flavor_text"].replace(/\n/g, " ").replace(/\u000c/g, " ");
 
-    const hpStatDetails = details.stats.filter(({ stat }) => stat.name === "hp");
-    const atkStatDetails = details.stats.filter(({ stat }) => stat.name === "attack");
-    const defStatDetails = details.stats.filter(({ stat }) => stat.name === "defense");
-    const satkStatDetails = details.stats.filter(({ stat }) => stat.name === "special-attack");
-    const sdefStatDetails = details.stats.filter(({ stat }) => stat.name === "special-defense");
-    const spdStatDetails = details.stats.filter(({ stat }) => stat.name === "speed");
+    const stats = [
+        { name: "HP", value: details.stats[0].base_stat },
+        { name: "ATK", value: details.stats[1].base_stat },
+        { name: "DEF", value: details.stats[2].base_stat },
+        { name: "SATK", value: details.stats[3].base_stat },
+        { name: "SDEF", value: details.stats[4].base_stat },
+        { name: "SPD", value: details.stats[5].base_stat },
+    ];
 
-    const hpStat = hpStatDetails[0]["base_stat"].toString().padStart(3, "0");
-    const atkStat = atkStatDetails[0]["base_stat"].toString().padStart(3, "0");
-    const defStat = defStatDetails[0]["base_stat"].toString().padStart(3, "0");
-    const satkStat = satkStatDetails[0]["base_stat"].toString().padStart(3, "0");
-    const sdefStat = sdefStatDetails[0]["base_stat"].toString().padStart(3, "0");
-    const spdStat = spdStatDetails[0]["base_stat"].toString().padStart(3, "0");
-
-    const hpPercentage = `${(parseInt(hpStat) / 255) * 100}%`;
-    const atkPercentage = `${(parseInt(atkStat) / 255) * 100}%`;
-    const defPercentage = `${(parseInt(defStat) / 255) * 100}%`;
-    const satkPercentage = `${(parseInt(satkStat) / 255) * 100}%`;
-    const sdefPercentage = `${(parseInt(sdefStat) / 255) * 100}%`;
-    const spdPercentage = `${(parseInt(spdStat) / 255) * 100}%`;
+    const renderInfoStat = stats
+        .map((stat) => {
+            return `
+                <div class="pokemon-info__stat">
+                    <p class="pokemon-info__stat-name">${stat.name}</p>
+                    <div class="pokemon-info__stat-group">
+                        <p class="pokemon-info__stat-value">${leadZeroPad(stat.value, 3)}</p>
+                        <div class="pokemon-info__progress-hp pokemon-info__progress-wrapper" 
+                            style="background-color: ${TYPE_COLORS[
+                                details.types[0].type.name
+                            ].base.replace(/, 1\)/, ", 0.2)")}">
+                            <div class="pokemon-info__progress" 
+                                data-target-width="${(stat.value / 255) * 100}" 
+                                style="width:0%;
+                                background: linear-gradient(to bottom right, ${
+                                    TYPE_COLORS[details.types[0].type.name].gradient
+                                }">
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        })
+        .join("");
 
     const info = document.createElement("section");
     info.className = "pokemon-info";
@@ -273,95 +329,18 @@ export async function renderPokemonInfo(details, id, onRouteChange) {
                 <div class="pokemon-info__base-stats">
                     <p class="pokemon-info__title">Base Stats</p>
                     <div class="pokemon-info__stats">
-                        <div class="pokemon-info__stat">
-                            <p class="pokemon-info__stat-name">HP</p>
-                            <div class="pokemon-info__stat-group">
-                                <p class="pokemon-info__stat-value">${hpStat}</p>
-                                <div class="pokemon-info__progress-hp pokemon-info__progress-wrapper">
-                                    <div class="pokemon-info__progress"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="pokemon-info__stat">
-                            <p class="pokemon-info__stat-name">ATK</p>
-                            <div class="pokemon-info__stat-group">
-                                <p class="pokemon-info__stat-value">${atkStat}</p>
-                                <div class="pokemon-info__progress-atk pokemon-info__progress-wrapper">
-                                    <div class="pokemon-info__progress"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="pokemon-info__stat">
-                            <p class="pokemon-info__stat-name">DEF</p>
-                            <div class="pokemon-info__stat-group">
-                                <p class="pokemon-info__stat-value">${defStat}</p>
-                                <div class="pokemon-info__progress-def pokemon-info__progress-wrapper">
-                                    <div class="pokemon-info__progress"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="pokemon-info__stat">
-                            <p class="pokemon-info__stat-name">SATK</p>
-                            <div class="pokemon-info__stat-group">
-                                <p class="pokemon-info__stat-value">${satkStat}</p>
-                                <div class="pokemon-info__progress-satk pokemon-info__progress-wrapper">
-                                    <div class="pokemon-info__progress"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="pokemon-info__stat">
-                            <p class="pokemon-info__stat-name">SDEF</p>
-                            <div class="pokemon-info__stat-group">
-                                <p class="pokemon-info__stat-value">${sdefStat}</p>
-                                <div class="pokemon-info__progress-sdef pokemon-info__progress-wrapper">
-                                    <div class="pokemon-info__progress"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="pokemon-info__stat">
-                            <p class="pokemon-info__stat-name">SPD</p>
-                            <div class="pokemon-info__stat-group">
-                                <p class="pokemon-info__stat-value">${spdStat}</p>
-                                <div class="pokemon-info__progress-spd pokemon-info__progress-wrapper">
-                                    <div class="pokemon-info__progress"></div>
-                                </div>
-                            </div>
-                        </div>
+                        ${renderInfoStat}
                     </div>
                 </div>
             </div>
         </section>
     `;
 
-    const typeColors = {
-        bug: "rgba(167, 183, 35, 1)",
-        dark: "rgba(117, 85, 76, 1)",
-        dragon: "rgba(112, 55, 255, 1)",
-        electric: "rgba(249, 207, 48, 1)",
-        fairy: "rgba(230, 158, 172, 1)",
-        fighting: "rgba(194, 34, 57, 1)",
-        fire: "rgba(245, 125, 49, 1)",
-        flying: "rgba(168, 145, 236, 1)",
-        ghost: "rgba(112, 85, 155, 1)",
-        normal: "rgba(170, 166, 127, 1)",
-        grass: "rgba(116, 203, 72, 1)",
-        ground: "rgba(220, 193, 107, 1)",
-        ice: "rgba(154, 214, 223, 1)",
-        poison: "rgba(164, 62, 158, 1)",
-        psychic: "rgba(251, 85, 132, 1)",
-        rock: "rgba(182, 158, 49, 1)",
-        steel: "rgba(183, 185, 208, 1)",
-        water: "rgba(100, 147, 235, 1)",
-    };
+    const infoImgEl = info.querySelector(".pokemon-info__image");
+    fadeInImage(infoImgEl);
+
     const pokemonInfoWrapper = info.querySelector(".pokemon-info__wrapper");
-    Vibrant.from(pokemonImg)
-        .getPalette()
-        .then((palette) => {
-            pokemonInfoWrapper.style.backgroundColor = palette.LightMuted.hex;
-        })
-        .catch(() => {
-            // Keep default background if color calculation fails
-        });
+    pokemonInfoWrapper.style.backgroundColor = await getLightMutedColor(pokemonImg, details.id);
 
     const pokemonAbilitiesContainer = info.querySelector(".pokemon-info__abilities");
     details.abilities.forEach((abilityInfo) => {
@@ -379,82 +358,36 @@ export async function renderPokemonInfo(details, id, onRouteChange) {
         const type = document.createElement("p");
 
         type.className = "pokemon-info__type";
-        type.textContent = typeInfo.type.name.charAt(0).toUpperCase() + typeInfo.type.name.slice(1);
-        type.style.backgroundColor = typeColors[typeInfo.type.name];
+        type.textContent = capitalize(typeInfo.type.name);
+        type.style.background = `linear-gradient(to bottom right, ${
+            TYPE_COLORS[typeInfo.type.name].gradient
+        }`;
 
         pokemonTypesContainer.appendChild(type);
     });
 
     info.querySelectorAll(".pokemon-info__title, .pokemon-info__stat-name").forEach(
-        (elem) => (elem.style.color = typeColors[details.types[0].type.name])
+        (elem) => (elem.style.color = TYPE_COLORS[details.types[0].type.name].base)
     );
-
-    const pokemonProgressHpWrapper = info.querySelector(".pokemon-info__progress-hp");
-    const pokemonProgressAtkWrapper = info.querySelector(".pokemon-info__progress-atk");
-    const pokemonProgressDefWrapper = info.querySelector(".pokemon-info__progress-def");
-    const pokemonProgressSatkWrapper = info.querySelector(".pokemon-info__progress-satk");
-    const pokemonProgressSdefWrapper = info.querySelector(".pokemon-info__progress-sdef");
-    const pokemonProgressSpdWrapper = info.querySelector(".pokemon-info__progress-spd");
-
-    pokemonProgressHpWrapper.firstElementChild.style.width = hpPercentage;
-    pokemonProgressAtkWrapper.firstElementChild.style.width = atkPercentage;
-    pokemonProgressDefWrapper.firstElementChild.style.width = defPercentage;
-    pokemonProgressSatkWrapper.firstElementChild.style.width = satkPercentage;
-    pokemonProgressSdefWrapper.firstElementChild.style.width = sdefPercentage;
-    pokemonProgressSpdWrapper.firstElementChild.style.width = spdPercentage;
-
-    pokemonProgressHpWrapper.style.backgroundColor = typeColors[details.types[0].type.name].replace(
-        /, 1\)/,
-        ", 0.2)"
-    );
-    pokemonProgressHpWrapper.firstElementChild.style.backgroundColor =
-        typeColors[details.types[0].type.name];
-
-    pokemonProgressAtkWrapper.style.backgroundColor = typeColors[
-        details.types[0].type.name
-    ].replace(/, 1\)/, ", 0.2)");
-    pokemonProgressAtkWrapper.firstElementChild.style.backgroundColor =
-        typeColors[details.types[0].type.name];
-
-    pokemonProgressDefWrapper.style.backgroundColor = typeColors[
-        details.types[0].type.name
-    ].replace(/, 1\)/, ", 0.2)");
-    pokemonProgressDefWrapper.firstElementChild.style.backgroundColor =
-        typeColors[details.types[0].type.name];
-
-    pokemonProgressSatkWrapper.style.backgroundColor = typeColors[
-        details.types[0].type.name
-    ].replace(/, 1\)/, ", 0.2)");
-    pokemonProgressSatkWrapper.firstElementChild.style.backgroundColor =
-        typeColors[details.types[0].type.name];
-
-    pokemonProgressSdefWrapper.style.backgroundColor = typeColors[
-        details.types[0].type.name
-    ].replace(/, 1\)/, ", 0.2)");
-    pokemonProgressSdefWrapper.firstElementChild.style.backgroundColor =
-        typeColors[details.types[0].type.name];
-
-    pokemonProgressSpdWrapper.style.backgroundColor = typeColors[
-        details.types[0].type.name
-    ].replace(/, 1\)/, ", 0.2)");
-    pokemonProgressSpdWrapper.firstElementChild.style.backgroundColor =
-        typeColors[details.types[0].type.name];
 
     info.querySelector(".pokemon-info__header-wrapper").addEventListener("click", (e) => {
         e.preventDefault();
         console.log(e.target);
 
         if (e.target.closest(".pokemon-info__back-button")) {
+            showSpinner();
             history.pushState(null, null, "/");
             document.body.removeChild(info);
 
             onRouteChange();
         } else if (e.target.closest(".pokemon-info__chevron-prev")) {
+            showSpinner();
             if (id === "1") history.pushState(null, null, `/details/${1025}`);
             else history.pushState(null, null, `/details/${parseInt(id) - 1}`);
 
             onRouteChange();
         } else if (e.target.closest(".pokemon-info__chevron-next")) {
+            showSpinner();
             if (id === "1025") history.pushState(null, null, "/details/1");
             else history.pushState(null, null, `/details/${parseInt(id) + 1}`);
 
@@ -467,6 +400,15 @@ export async function renderPokemonInfo(details, id, onRouteChange) {
     } else {
         document.body.appendChild(info);
     }
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            document.querySelectorAll(".pokemon-info__progress").forEach((progressEl) => {
+                const targetWidth = progressEl.getAttribute("data-target-width");
+                progressEl.style.width = targetWidth + "%";
+            });
+        });
+    });
 
     const pokedex = document.querySelector(".pokedex");
     pokedex.style.display = "none";
